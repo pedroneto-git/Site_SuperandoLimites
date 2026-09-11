@@ -1,0 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Sora:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 28 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 44 27% 95%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 44 27% 95%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 28 100% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 40 12% 88%;
+    --input: 40 12% 88%;
+    --ring: 28 100% 50%;
+    --radius: 0.25rem;
+    --sand: 44 27% 95%;
+  }
+}
+
+body {
+  font-family: 'Sora', system-ui, sans-serif;
+  overflow-x: clip;
+  background-color: #ffffff;
+  color: #171717;
+}
+
+h1, h2, h3, h4, .display {
+  font-family: 'Barlow Condensed', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 0.92;
+}
+
+.route-line {
+  background-image: repeating-linear-gradient(90deg, #FF7900 0 18px, transparent 18px 34px);
+}
+
+@keyframes sl-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: sl-marquee 28s linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+}
+
+:focus-visible {
+  outline: 3px solid #FF7900;
+  outline-offset: 2px;
+}
