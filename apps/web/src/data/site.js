@@ -22,6 +22,7 @@ export const NAV = [
   { label: 'Como funciona', href: '#como-funciona' },
   { label: 'Metas', href: '#metas' },
   { label: 'Comunidade', href: '#comunidade' },
+  { label: 'Banner', href: '/banner/' },
   { label: 'Inscrição', href: '#inscricao' },
 ];
 
