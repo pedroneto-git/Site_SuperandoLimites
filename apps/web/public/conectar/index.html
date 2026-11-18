@@ -57,7 +57,11 @@ footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);color:v
   var CLIENT_ID = '298525';
   var estado = Math.random().toString(36).slice(2) + Date.now().toString(36);
   try { sessionStorage.setItem('strava_estado', estado); } catch (e) {}
-  var url = 'https://www.strava.com/oauth/authorize'
+  // No celular, usa a autorização pelo app do Strava (já logado). Sem o app, abre no navegador.
+  var celular = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var base = celular ? 'https://www.strava.com/oauth/mobile/authorize' : 'https://www.strava.com/oauth/authorize';
+  var url = base
     + '?client_id=' + CLIENT_ID
     + '&response_type=code'
     + '&redirect_uri=' + encodeURIComponent(location.origin + '/conectar/retorno/')
