@@ -26,8 +26,8 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:#0c0c0c;overflow:hidden;font-family:var(--sans)}
-#viewport{position:fixed;inset:0;display:grid;place-items:center}
-#deck{width:1920px;height:1080px;position:relative;transform-origin:center center;flex:none}
+#viewport{position:fixed;inset:0;overflow:hidden}
+#deck{width:1920px;height:1080px;position:absolute;left:50%;top:50%;transform-origin:center center}
 .slide{position:absolute;inset:0;overflow:hidden;opacity:0;visibility:hidden;transition:opacity .45s ease,visibility .45s}
 .slide.active{opacity:1;visibility:visible}
 .dark{background:var(--ink);color:#fff}
@@ -108,7 +108,33 @@ html,body{height:100%;background:#0c0c0c;overflow:hidden;font-family:var(--sans)
 #nav #count{color:#bbb;font-size:14px;min-width:60px;text-align:center;letter-spacing:.1em}
 #progress{position:fixed;left:0;top:0;height:5px;background:var(--orange);z-index:10;transition:width .4s}
 
+/* modo documento (celular): slides empilhados, rolagem e zoom */
+html:has(body.doc){overflow:auto;height:auto}
+body.doc{overflow:auto;height:auto;background:#0c0c0c}
+body.doc #viewport{position:relative;inset:auto;overflow:hidden}
+body.doc #deck{left:0;top:0;height:auto;transform-origin:0 0}
+body.doc .slide{position:relative;inset:auto;width:1920px;height:1080px;opacity:1;visibility:visible;margin-bottom:40px;border-radius:24px}
+body.doc .slide:last-child{margin-bottom:0}
+body.doc .bar-fill,body.doc .stack div{width:var(--w)!important;transition:none}
+body.doc #nav,body.doc #progress{display:none}
+body.doc .doc-hint{display:block}
+.doc-hint{display:none;color:#8a8a8a;font:500 12px/1.4 var(--sans);text-align:center;padding:14px 16px 4px;letter-spacing:.04em}
+body.doc .slide{cursor:pointer}
+#playBtn{display:none;position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:20;background:var(--orange);color:#fff;border:0;border-radius:999px;padding:14px 24px;font:700 15px/1 var(--sans);letter-spacing:.02em;box-shadow:0 6px 24px rgba(0,0,0,.45);white-space:nowrap}
+body.doc #playBtn{display:block}
+/* tela cheia no celular: um slide por vez */
+body.present{background:#000}
+body.present #viewport{background:#000}
+body.present #nav{opacity:1;left:0;right:0;bottom:calc(10px + env(safe-area-inset-bottom));justify-content:center;gap:12px}
+body.present #nav button{width:48px;height:48px;font-size:22px;background:rgba(30,30,30,.85)}
+#closeBtn{display:none}
+body.present #closeBtn{display:inline-block}
+body.present #fs{display:none}
+#rotateHint{display:none;position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top));transform:translateX(-50%);z-index:20;background:rgba(30,30,30,.9);color:#ddd;font:500 13px/1.3 var(--sans);padding:10px 16px;border-radius:999px;white-space:nowrap;transition:opacity .6s}
+@media (orientation:portrait){body.present #rotateHint{display:block}}
+@media (orientation:landscape) and (max-height:520px){body.present #nav{opacity:.55;gap:8px;bottom:6px;right:10px;left:auto}body.present #nav button{width:36px;height:36px;font-size:17px}body.present #nav #count{min-width:44px;font-size:12px}}
 @media print{
+  .doc-hint{display:none!important}
   @page{size:1920px 1080px;margin:0}
   html,body{overflow:visible;height:auto;background:none}
   #viewport{position:static;display:block}
@@ -123,6 +149,9 @@ html,body{height:100%;background:#0c0c0c;overflow:hidden;font-family:var(--sans)
 </head>
 <body>
 <div id="progress"></div>
+<div class="doc-hint">Role para ver todos os slides · use dois dedos para dar zoom · toque em um slide para abrir em tela cheia</div>
+<button id="playBtn" type="button">▶ Ver em tela cheia</button>
+<div id="rotateHint">Gire o celular para ver maior ↻</div>
 <div id="viewport"><div id="deck">
 
 <!-- 1 · CAPA -->
@@ -393,7 +422,7 @@ html,body{height:100%;background:#0c0c0c;overflow:hidden;font-family:var(--sans)
 
 </div></div>
 
-<div id="nav"><button id="prev" aria-label="Anterior">‹</button><span id="count"></span><button id="next" aria-label="Próximo">›</button><button id="fs" aria-label="Tela cheia" title="Tela cheia (F)">⛶</button></div>
+<div id="nav"><button id="prev" aria-label="Anterior">‹</button><span id="count"></span><button id="next" aria-label="Próximo">›</button><button id="fs" aria-label="Tela cheia" title="Tela cheia (F)">⛶</button><button id="closeBtn" aria-label="Sair da tela cheia">✕</button></div>
 
 <script>
 (function(){
@@ -405,8 +434,26 @@ html,body{height:100%;background:#0c0c0c;overflow:hidden;font-family:var(--sans)
   var deck=document.getElementById('deck');
   slides.forEach(function(s,i){var p=s.querySelector('.pg'); if(p) p.textContent=String(i+1).padStart(2,'0')+' / '+String(n).padStart(2,'0');});
 
-  function fit(){var s=Math.min(innerWidth/1920,innerHeight/1080); deck.style.transform='scale('+s+')';}
-  addEventListener('resize',fit); fit();
+  var vp=document.getElementById('viewport'), doc=false, present=false, lastW=0;
+  function fit(){
+    var w=document.documentElement.clientWidth||innerWidth, h=innerHeight;
+    doc = !present && (w<900 || w<h);
+    document.body.classList.toggle('present',present);
+    document.body.classList.toggle('doc',doc);
+    if(doc){
+      var pad=10, s=(w-pad*2)/1920;
+      deck.style.transform='scale('+s+')'; deck.style.marginLeft=pad+'px';
+      vp.style.height=Math.ceil(deck.offsetHeight*s+pad*2)+'px'; deck.style.marginTop=pad+'px';
+    }else{
+      var s2=Math.min(w/1920,h/1080);
+      deck.style.transform='translate(-50%,-50%) scale('+s2+')'; deck.style.marginLeft=''; deck.style.marginTop=''; vp.style.height='';
+    }
+    lastW=w;
+  }
+  addEventListener('resize',function(){ var w=document.documentElement.clientWidth||innerWidth; if(!doc || w!==lastW) fit(); });
+  addEventListener('fullscreenchange',function(){ setTimeout(fit,100); });
+  addEventListener('orientationchange',function(){ setTimeout(fit,250); });
+  fit();
 
   function countUp(el){
     var target=+el.dataset.count, pre=el.dataset.prefix||'', suf=el.dataset.suffix||'', t0=null, d=1100;
@@ -429,17 +476,34 @@ html,body{height:100%;background:#0c0c0c;overflow:hidden;font-family:var(--sans)
     requestAnimationFrame(function(){ slides.forEach(function(s){ if(!s.classList.contains('active')) s.querySelectorAll('.bar-fill,.stack div').forEach(function(b){b.style.transition='';}); }); }); };
 
   addEventListener('keydown',function(e){
+    if(doc) return;
     if(['ArrowRight','PageDown',' ','Enter'].indexOf(e.key)>-1){e.preventDefault();go(cur+1)}
     else if(['ArrowLeft','PageUp','Backspace'].indexOf(e.key)>-1){e.preventDefault();go(cur-1)}
     else if(e.key==='Home')go(0); else if(e.key==='End')go(n-1);
     else if(e.key==='f'||e.key==='F')toggleFs();
+    else if(e.key==='Escape'&&present)closePresent();
   });
   function toggleFs(){ try{ if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }catch(err){} }
   document.getElementById('prev').onclick=function(){go(cur-1)};
   document.getElementById('next').onclick=function(){go(cur+1)};
   document.getElementById('fs').onclick=toggleFs;
+  function openPresent(i){
+    present=true; fit(); go(i);
+    try{ var el=document.documentElement, r=el.requestFullscreen||el.webkitRequestFullscreen; if(r){ var pr=r.call(el); if(pr&&pr.catch)pr.catch(function(){}); } }catch(err){}
+    try{ if(screen.orientation&&screen.orientation.lock) screen.orientation.lock('landscape').catch(function(){}); }catch(err){}
+    var rh=document.getElementById('rotateHint'); rh.style.opacity=1; setTimeout(function(){rh.style.opacity=0},3500);
+    scrollTo(0,0);
+  }
+  function closePresent(){
+    try{ if(document.fullscreenElement) document.exitFullscreen(); else if(document.webkitFullscreenElement) document.webkitExitFullscreen(); }catch(err){}
+    present=false; fit();
+    if(doc){ var s=deck.style.transform.match(/scale\(([^)]+)\)/); var k=s?+s[1]:1; scrollTo(0, vp.offsetTop + slides[cur].offsetTop*k); }
+  }
+  document.getElementById('playBtn').onclick=function(){ openPresent(0); };
+  document.getElementById('closeBtn').onclick=closePresent;
+  slides.forEach(function(sl,i){ sl.addEventListener('click',function(){ if(doc) openPresent(i); }); });
   var x0=null; addEventListener('touchstart',function(e){x0=e.touches[0].clientX},{passive:true});
-  addEventListener('touchend',function(e){ if(x0===null)return; var dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>50) go(cur+(dx<0?1:-1)); x0=null; });
+  addEventListener('touchend',function(e){ if(doc||x0===null)return; var dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>50) go(cur+(dx<0?1:-1)); x0=null; });
 
   var start=parseInt((location.hash||'').slice(1),10); cur=0;
   slides[0].classList.add('active');
